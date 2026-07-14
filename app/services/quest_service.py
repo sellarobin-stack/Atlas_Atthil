@@ -7,33 +7,18 @@ class QuestService:
 
         repo = QuestRepository()
 
-        quests = repo.all()
+        try:
+            return repo.all()
 
-        repo.close()
+        finally:
+            repo.close()
 
-        return quests
-    
-    def available_quests(
-    self,
-    completed_quests: set[int],
-):
+    def available_quests(self):
 
         repo = QuestRepository()
 
-        available = []
+        try:
+            return repo.available()
 
-        quests = repo.all()
-
-        for quest in quests:
-
-            dependencies = repo.dependencies(quest.id)
-
-        if all(
-            dependency.required_quest_id in completed_quests
-            for dependency in dependencies
-        ):
-            available.append(quest)
-
-        repo.close()
-
-        return available
+        finally:
+            repo.close()

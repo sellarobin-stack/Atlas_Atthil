@@ -1,8 +1,7 @@
 from sqlalchemy import select
 
-from app.database.models import Quest
+from app.database.models import Quest, QuestDependency
 from app.database.session import SessionLocal
-from app.database.models import QuestDependency
 
 
 class QuestRepository:
@@ -11,6 +10,7 @@ class QuestRepository:
         self.db = SessionLocal()
 
     def all(self):
+
         return self.db.scalars(
             select(Quest).order_by(Quest.level)
         ).all()
@@ -23,16 +23,28 @@ class QuestRepository:
             )
         )
 
-    def close(self):
-        self.db.close()
+    def by_id(self, quest_id: int):
+
+        return self.db.get(Quest, quest_id)
 
     def dependencies(self, quest_id: int):
 
-        return self.db.query(QuestDependency).filter(
-        QuestDependency.quest_id == quest_id
-    ).all()
+        return (
+            self.db.query(QuestDependency)
+            .filter(
+                QuestDependency.quest_id == quest_id
+            )
+            .all()
+        )
 
+    def close(self):
 
-def by_id(self, quest_id: int):
+        self.db.close()
 
-    return self.db.get(Quest, quest_id)
+    def available(self):
+
+        return [
+            quest
+            for quest in self.all()
+            if len(quest.dependencies) == 0
+    ]

@@ -20,4 +20,4 @@ def available():
 
     service = QuestService()
 
-    return service.available_quests(set())
+    return service.available_quests()
