@@ -28,3 +28,48 @@ class QuestEngine:
     ) -> list[QuestNode]:
 
         return self.graph.blocked(completed_quests)
+    def missing_requirements(
+        self,
+        quest_id: int,
+        completed_quests: set[int],
+    ) -> list[QuestNode]:
+
+        node = self.graph.get_node(quest_id)
+
+        if node is None:
+            return []
+
+        return [
+            self.graph.get_node(parent_id)
+            for parent_id in sorted(node.parents)
+            if parent_id not in completed_quests
+        ]
+    
+    def unlocks(
+        self,
+        quest_id: int,
+    ) -> list[QuestNode]:
+
+        node = self.graph.get_node(quest_id)
+
+        if node is None:
+            return []
+
+        return sorted(
+            [
+                self.graph.get_node(child_id)
+                for child_id in node.children
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
+    
+    def is_completed(
+        self,
+        quest_id: int,
+        completed_quests: set[int],
+    ) -> bool:
+
+        return quest_id in completed_quests
