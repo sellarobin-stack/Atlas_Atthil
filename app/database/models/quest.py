@@ -70,11 +70,10 @@ class Quest(BaseModel):
     )
     dependencies: Mapped[list["QuestDependency"]] = relationship(
     back_populates="quest",
-    foreign_keys="QuestDependency.quest_id",
-    cascade="all, delete-orphan",
+        foreign_keys="QuestDependency.quest_id",
+        cascade="all, delete-orphan",
     )
     required_by: Mapped[list["QuestDependency"]] = relationship(
-    "QuestDependency",
-    foreign_keys="QuestDependency.required_quest_id",
-
-)
+        back_populates="required_quest",
+        foreign_keys="QuestDependency.required_quest_id",
+    )

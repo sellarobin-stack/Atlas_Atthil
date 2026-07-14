@@ -2,7 +2,7 @@ from app.services.quest_service import QuestService
 
 service = QuestService()
 
-quests = service.available_quests(set())
+quests = service.available_quests()
 
 print("Quêtes disponibles :")
 
