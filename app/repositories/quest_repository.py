@@ -48,3 +48,20 @@ class QuestRepository:
             for quest in self.all()
             if len(quest.dependencies) == 0
     ]
+
+    def by_level(self, level: int):
+
+        return self.db.scalars(
+            select(Quest)
+            .where(Quest.level <= level)
+            .order_by(Quest.level)
+        ).all()
+
+
+    def by_campaign(self, campaign_id: int):
+
+        return self.db.scalars(
+            select(Quest)
+            .where(Quest.campaign_id == campaign_id)
+            .order_by(Quest.level)
+        ).all()

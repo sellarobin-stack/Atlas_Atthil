@@ -21,3 +21,18 @@ def available():
     service = QuestService()
 
     return service.available_quests()
+
+@router.get("/level/{level}")
+def quests_by_level(level: int):
+
+    service = QuestService()
+
+    return service.quests_by_level(level)
+
+
+@router.get("/campaign/{campaign_id}")
+def quests_by_campaign(campaign_id: int):
+
+    service = QuestService()
+
+    return service.quests_by_campaign(campaign_id)

@@ -1,0 +1,6 @@
+class QuestType(Enum):
+    MAIN = "MAIN"
+    SIDE = "SIDE"
+    DUNGEON = "DUNGEON"
+    PROFESSION = "PROFESSION"
+    EXPLORATION = "EXPLORATION"
