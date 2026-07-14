@@ -174,4 +174,10 @@ class QuestGraph:
             ):
                 blocked.append(node)
 
-        return blocked
+        return sorted(
+            blocked,
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
