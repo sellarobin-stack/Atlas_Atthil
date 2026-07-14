@@ -31,13 +31,14 @@ def build_graph() -> QuestGraph:
 
 
 def test_missing_requirements_no_completion():
+
     engine = QuestEngine(build_graph())
 
     missing = engine.missing_requirements(3, set())
 
-    assert len(missing) == 1
-    assert missing[0].quest_id == 2
+    ids = {quest.quest_id for quest in missing}
 
+    assert ids == {1, 2}
 
 def test_missing_requirements_after_first_quest():
     engine = QuestEngine(build_graph())

@@ -2,22 +2,57 @@ from app.optimizer.quest_graph import QuestGraph
 from app.optimizer.quest_node import QuestNode
 
 
+def build_graph() -> QuestGraph:
+    """
+        1
+       / \
+      ▼   ▼
+      2   4
+      │
+      ▼
+      3
+    """
+
+    graph = QuestGraph()
+
+    graph.add_node(QuestNode(1, "Quest 1", 1))
+    graph.add_node(QuestNode(2, "Quest 2", 10))
+    graph.add_node(QuestNode(3, "Quest 3", 20))
+    graph.add_node(QuestNode(4, "Quest 4", 15))
+
+    graph.add_dependency(1, 2)
+    graph.add_dependency(2, 3)
+    graph.add_dependency(1, 4)
+
+    return graph
+
+
+# ---------------------------------------------------------------------
+# Nodes
+# ---------------------------------------------------------------------
+
+
 def test_add_node():
 
     graph = QuestGraph()
 
     graph.add_node(
         QuestNode(
-            quest_id=1,
-            name="Quest 1",
-            level=1,
+            1,
+            "Quest 1",
+            1,
         )
     )
 
     assert len(graph) == 1
 
 
-def test_dependency():
+# ---------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------
+
+
+def test_add_dependency():
 
     graph = QuestGraph()
 
@@ -30,14 +65,14 @@ def test_dependency():
     assert graph.get_node(2).parents == {1}
 
 
+# ---------------------------------------------------------------------
+# Roots / Leaves
+# ---------------------------------------------------------------------
+
+
 def test_roots():
 
-    graph = QuestGraph()
-
-    graph.add_node(QuestNode(1, "A", 1))
-    graph.add_node(QuestNode(2, "B", 1))
-
-    graph.add_dependency(1, 2)
+    graph = build_graph()
 
     roots = graph.roots()
 
@@ -47,56 +82,86 @@ def test_roots():
 
 def test_leaves():
 
-    graph = QuestGraph()
-
-    graph.add_node(QuestNode(1, "A", 1))
-    graph.add_node(QuestNode(2, "B", 1))
-
-    graph.add_dependency(1, 2)
+    graph = build_graph()
 
     leaves = graph.leaves()
 
-    assert len(leaves) == 1
-    assert leaves[0].quest_id == 2
+    assert len(leaves) == 2
 
-def test_available():
+    ids = {quest.quest_id for quest in leaves}
 
-    graph = QuestGraph()
+    assert ids == {3, 4}
 
-    graph.add_node(QuestNode(1, "A", 1))
-    graph.add_node(QuestNode(2, "B", 1))
 
-    graph.add_dependency(1, 2)
+# ---------------------------------------------------------------------
+# Available
+# ---------------------------------------------------------------------
 
-    available = graph.available(set())
 
-    assert len(available) == 1
-    assert available[0].quest_id == 1
+def test_available_without_completed():
 
-def test_available_after_completion():
+    graph = build_graph()
 
-    graph = QuestGraph()
+    quests = graph.available(set())
 
-    graph.add_node(QuestNode(1, "A", 1))
-    graph.add_node(QuestNode(2, "B", 1))
+    assert len(quests) == 1
+    assert quests[0].quest_id == 1
 
-    graph.add_dependency(1, 2)
 
-    available = graph.available({1})
+def test_available_after_first_quest():
 
-    assert len(available) == 1
-    assert available[0].quest_id == 2
+    graph = build_graph()
+
+    quests = graph.available({1})
+
+    ids = {quest.quest_id for quest in quests}
+
+    assert ids == {2, 4}
+
+
+# ---------------------------------------------------------------------
+# Blocked
+# ---------------------------------------------------------------------
+
 
 def test_blocked():
 
-    graph = QuestGraph()
+    graph = build_graph()
 
-    graph.add_node(QuestNode(1, "A", 1))
-    graph.add_node(QuestNode(2, "B", 1))
+    quests = graph.blocked(set())
 
-    graph.add_dependency(1, 2)
+    ids = {quest.quest_id for quest in quests}
 
-    blocked = graph.blocked(set())
+    assert ids == {2, 3, 4}
 
-    assert len(blocked) == 1
-    assert blocked[0].quest_id == 2
+
+# ---------------------------------------------------------------------
+# Ancestors
+# ---------------------------------------------------------------------
+
+
+def test_ancestors():
+
+    graph = build_graph()
+
+    ancestors = graph.ancestors(3)
+
+    ids = {quest.quest_id for quest in ancestors}
+
+    assert ids == {1, 2}
+
+
+# ---------------------------------------------------------------------
+# Descendants
+# ---------------------------------------------------------------------
+
+
+def test_descendants():
+
+    graph = build_graph()
+
+    descendants = graph.descendants(1)
+
+    ids = {quest.quest_id for quest in descendants}
+
+    assert ids == {2, 3, 4}

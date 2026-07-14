@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import deque
+
 from app.optimizer.quest_node import QuestNode
 
 
@@ -7,8 +9,12 @@ class QuestGraph:
     """
     Graphe orienté représentant les dépendances entre les quêtes.
 
-    Chaque noeud est une quête.
-    Une arête A -> B signifie :
+    Une arête :
+
+        A -----> B
+
+    signifie :
+
         B dépend de A.
     """
 
@@ -20,11 +26,9 @@ class QuestGraph:
     # -------------------------------------------------------------------------
 
     def add_node(self, node: QuestNode) -> None:
-        """Ajoute un noeud au graphe."""
         self.nodes[node.quest_id] = node
 
     def get_node(self, quest_id: int) -> QuestNode | None:
-        """Retourne un noeud ou None."""
         return self.nodes.get(quest_id)
 
     def has_node(self, quest_id: int) -> bool:
@@ -39,23 +43,18 @@ class QuestGraph:
         required_quest_id: int,
         dependent_quest_id: int,
     ) -> None:
-        """
-        Ajoute une dépendance.
-
-        required -----> dependent
-        """
 
         required = self.get_node(required_quest_id)
         dependent = self.get_node(dependent_quest_id)
 
         if required is None:
             raise ValueError(
-                f"Quest {required_quest_id} not found in graph."
+                f"Quest {required_quest_id} not found."
             )
 
         if dependent is None:
             raise ValueError(
-                f"Quest {dependent_quest_id} not found in graph."
+                f"Quest {dependent_quest_id} not found."
             )
 
         required.children.add(dependent.quest_id)
@@ -66,57 +65,138 @@ class QuestGraph:
     # -------------------------------------------------------------------------
 
     def parents(self, quest_id: int) -> list[QuestNode]:
+
         node = self.get_node(quest_id)
 
         if node is None:
             return []
 
-        return [
-            self.nodes[parent_id]
-            for parent_id in node.parents
-        ]
+        return sorted(
+            [
+                self.nodes[parent]
+                for parent in node.parents
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
 
     def children(self, quest_id: int) -> list[QuestNode]:
+
         node = self.get_node(quest_id)
 
         if node is None:
             return []
 
-        return [
-            self.nodes[child_id]
-            for child_id in node.children
-        ]
+        return sorted(
+            [
+                self.nodes[child]
+                for child in node.children
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
 
     # -------------------------------------------------------------------------
-    # Graph information
+    # Recursive navigation
     # -------------------------------------------------------------------------
 
-    def roots(self) -> list[QuestNode]:
+    def ancestors(self, quest_id: int) -> list[QuestNode]:
         """
-        Retourne les quêtes sans prérequis.
-        """
-        return [
-            node
-            for node in self.nodes.values()
-            if not node.parents
-        ]
+        Retourne tous les ancêtres d'une quête.
 
-    def leaves(self) -> list[QuestNode]:
-        """
-        Retourne les quêtes qui ne débloquent aucune autre quête.
-        """
-        return [
-            node
-            for node in self.nodes.values()
-            if not node.children
-        ]
+        Exemple :
 
-    def __len__(self) -> int:
-        return len(self.nodes)
+            1
+            │
+            ▼
+            2
+            │
+            ▼
+            3
 
-    def __iter__(self):
-        return iter(self.nodes.values())
-    
+        ancestors(3)
+
+        -> 1,2
+        """
+
+        visited: set[int] = set()
+
+        queue = deque([quest_id])
+
+        while queue:
+
+            current = queue.popleft()
+
+            node = self.get_node(current)
+
+            if node is None:
+                continue
+
+            for parent in node.parents:
+
+                if parent not in visited:
+
+                    visited.add(parent)
+
+                    queue.append(parent)
+
+        return sorted(
+            [
+                self.nodes[parent]
+                for parent in visited
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
+
+    def descendants(self, quest_id: int) -> list[QuestNode]:
+        """
+        Retourne toutes les quêtes débloquées directement
+        ou indirectement.
+        """
+
+        visited: set[int] = set()
+
+        queue = deque([quest_id])
+
+        while queue:
+
+            current = queue.popleft()
+
+            node = self.get_node(current)
+
+            if node is None:
+                continue
+
+            for child in node.children:
+
+                if child not in visited:
+
+                    visited.add(child)
+
+                    queue.append(child)
+
+        return sorted(
+            [
+                self.nodes[child]
+                for child in visited
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
+
+    # -------------------------------------------------------------------------
+    # Availability
+    # -------------------------------------------------------------------------
+
     def is_available(
         self,
         quest_id: int,
@@ -129,13 +209,13 @@ class QuestGraph:
             return False
 
         return node.parents.issubset(completed_quests)
-    
+
     def available(
         self,
         completed_quests: set[int],
     ) -> list[QuestNode]:
 
-        available = []
+        quests: list[QuestNode] = []
 
         for node in self.nodes.values():
 
@@ -146,22 +226,22 @@ class QuestGraph:
                 node.quest_id,
                 completed_quests,
             ):
-                available.append(node)
+                quests.append(node)
 
         return sorted(
-            available,
+            quests,
             key=lambda quest: (
                 quest.level,
                 quest.name,
             ),
         )
-    
+
     def blocked(
         self,
         completed_quests: set[int],
     ) -> list[QuestNode]:
 
-        blocked = []
+        quests: list[QuestNode] = []
 
         for node in self.nodes.values():
 
@@ -172,12 +252,52 @@ class QuestGraph:
                 node.quest_id,
                 completed_quests,
             ):
-                blocked.append(node)
+                quests.append(node)
 
         return sorted(
-            blocked,
+            quests,
             key=lambda quest: (
                 quest.level,
                 quest.name,
             ),
         )
+
+    # -------------------------------------------------------------------------
+    # Graph information
+    # -------------------------------------------------------------------------
+
+    def roots(self) -> list[QuestNode]:
+
+        return sorted(
+            [
+                node
+                for node in self.nodes.values()
+                if node.is_root
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
+
+    def leaves(self) -> list[QuestNode]:
+
+        return sorted(
+            [
+                node
+                for node in self.nodes.values()
+                if node.is_leaf
+            ],
+            key=lambda quest: (
+                quest.level,
+                quest.name,
+            ),
+        )
+
+    # -------------------------------------------------------------------------
+
+    def __len__(self) -> int:
+        return len(self.nodes)
+
+    def __iter__(self):
+        return iter(self.nodes.values())
