@@ -1,35 +1,50 @@
 from app.optimizer.graph_builder import GraphBuilder
 from app.optimizer.quest_engine import QuestEngine
 
-from app.repositories.quest_repository import QuestRepository
 from app.repositories.quest_dependency_repository import (
     QuestDependencyRepository,
 )
+from app.repositories.quest_repository import QuestRepository
 
 
 class GraphService:
     """
-    Construit le moteur Atlas à partir de la base.
+    Charge toutes les données nécessaires pour construire
+    le moteur Atlas.
     """
+
+    def __init__(self):
+
+        self.quest_repository = QuestRepository()
+        self.dependency_repository = QuestDependencyRepository()
 
     def build_engine(self) -> QuestEngine:
 
-        quest_repo = QuestRepository()
-        dependency_repo = QuestDependencyRepository()
+        quests = self.quest_repository.all()
 
-        try:
+        dependencies = self.dependency_repository.all()
 
-            quests = quest_repo.all()
-            dependencies = dependency_repo.all()
+        graph = GraphBuilder.build(
+            quests,
+            dependencies,
+        )
 
-            graph = GraphBuilder.build(
-                quests,
-                dependencies,
-            )
+        return QuestEngine(graph)
 
-            return QuestEngine(graph)
+    def close(self):
 
-        finally:
+        self.quest_repository.close()
+        self.dependency_repository.close()
 
-            quest_repo.close()
-            dependency_repo.close()
+    def __enter__(self):
+
+        return self
+
+    def __exit__(
+        self,
+        exc_type,
+        exc,
+        traceback,
+    ):
+
+        self.close()
