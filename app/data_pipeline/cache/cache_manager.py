@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 
 class CacheManager:
@@ -15,13 +16,15 @@ class CacheManager:
             exist_ok=True,
         )
 
-    def has(self, filename: str) -> bool:
+    def exists(self, filename: str) -> bool:
+
         return (self.cache_directory / filename).exists()
 
-    def load(self, filename: str):
+    def load(self, filename: str) -> Any:
 
         with (self.cache_directory / filename).open(
-            encoding="utf-8"
+            "r",
+            encoding="utf-8",
         ) as file:
 
             return json.load(file)
@@ -29,10 +32,12 @@ class CacheManager:
     def save(
         self,
         filename: str,
-        data,
-    ) -> None:
+        data: Any,
+    ) -> Path:
 
-        with (self.cache_directory / filename).open(
+        path = self.cache_directory / filename
+
+        with path.open(
             "w",
             encoding="utf-8",
         ) as file:
@@ -43,3 +48,17 @@ class CacheManager:
                 indent=4,
                 ensure_ascii=False,
             )
+
+        return path
+
+    def delete(self, filename: str) -> None:
+
+        path = self.cache_directory / filename
+
+        if path.exists():
+            path.unlink()
+
+    def clear(self) -> None:
+
+        for file in self.cache_directory.glob("*.json"):
+            file.unlink()
