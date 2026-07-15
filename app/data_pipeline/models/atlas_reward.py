@@ -1,49 +1,29 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from enum import Enum
+
+
+class RewardType(str, Enum):
+    EXPERIENCE = "experience"
+    KAMAS = "kamas"
+    ITEM = "item"
+    TITLE = "title"
+    ORNAMENT = "ornament"
+    EMOTE = "emote"
+    SPELL = "spell"
+    ACHIEVEMENT = "achievement"
+    UNKNOWN = "unknown"
 
 
 @dataclass(slots=True)
 class AtlasReward:
-    """
-    Représentation interne d'une récompense de quête.
-    """
+    type: RewardType
+    value: int | str | None = None
 
-    experience: int = 0
+    quantity: int = 1
 
-    kamas: int = 0
+    item_id: int | None = None
+    item_name: str | None = None
 
-    items: list[tuple[int, int]] | None = None
-
-    emotes: list[int] | None = None
-
-    titles: list[int] | None = None
-
-    ornaments: list[int] | None = None
-
-    achievements: list[int] | None = None
-
-    spells: list[int] | None = None
-
-    jobs: list[int] | None = None
-
-    def __post_init__(self) -> None:
-
-        if self.items is None:
-            self.items = []
-
-        if self.emotes is None:
-            self.emotes = []
-
-        if self.titles is None:
-            self.titles = []
-
-        if self.ornaments is None:
-            self.ornaments = []
-
-        if self.achievements is None:
-            self.achievements = []
-
-        if self.spells is None:
-            self.spells = []
-
-        if self.jobs is None:
-            self.jobs = []
+    description: str | None = None
