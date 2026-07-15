@@ -1,81 +1,77 @@
 from __future__ import annotations
 
-from app.data_pipeline.models.atlas_quest import AtlasQuest
+from app.data_pipeline.models import (
+    AtlasMap,
+    AtlasNpc,
+    AtlasPrerequisite,
+    AtlasQuest,
+)
+from app.data_pipeline.normalizers.map_normalizer import MapNormalizer
+from app.data_pipeline.normalizers.npc_normalizer import NpcNormalizer
+from app.data_pipeline.normalizers.prerequisite_normalizer import (
+    PrerequisiteNormalizer,
+)
+from app.data_pipeline.normalizers.reward_normalizer import RewardNormalizer
+from app.data_pipeline.normalizers.step_normalizer import StepNormalizer
 
 
 class QuestNormalizer:
-    """
-    Transforme une quête provenant d'une source externe
-    (DofusDB, Ankama, etc.) en AtlasQuest.
-    """
 
     @staticmethod
     def normalize(data: dict) -> AtlasQuest:
 
-        return AtlasQuest(
+        quest = AtlasQuest(
             id=data["id"],
-            name=data["name"],
-            level=data.get("level", 1),
+            name=data.get("name", ""),
+            level=data.get("level"),
+            category=data.get("category"),
             campaign=data.get("campaign"),
-
-            zone_id=data.get("zone_id"),
-            map_id=data.get("map_id"),
-
             repeatable=data.get("repeatable", False),
-
-            prerequisites=QuestNormalizer._extract_prerequisites(data),
-            steps=QuestNormalizer._extract_steps(data),
-            rewards=QuestNormalizer._extract_rewards(data),
         )
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+        for npc in QuestNormalizer._extract_start_npcs(data):
+            quest.add_start_npc(npc)
+
+        for game_map in QuestNormalizer._extract_start_maps(data):
+            quest.add_start_map(game_map)
+
+        for prerequisite in data.get("prerequisites", []):
+            quest.add_prerequisite(
+                PrerequisiteNormalizer.normalize(prerequisite)
+            )
+
+        for step in data.get("steps", []):
+            quest.add_step(
+                StepNormalizer.normalize(step)
+            )
+
+        for reward in data.get("rewards", []):
+            quest.add_reward(
+                RewardNormalizer.normalize(reward)
+            )
+
+        return quest
 
     @staticmethod
-    def _extract_prerequisites(data: dict) -> list[int]:
+    def _extract_start_npcs(data: dict) -> list[AtlasNpc]:
 
-        prerequisites = data.get("prerequisites", [])
+        npcs = []
 
-        result: list[int] = []
+        for npc in data.get("start_npcs", []):
 
-        for prerequisite in prerequisites:
+            if isinstance(npc, dict):
+                npcs.append(NpcNormalizer.normalize(npc))
 
-            if isinstance(prerequisite, dict):
-                result.append(prerequisite["id"])
-            else:
-                result.append(prerequisite)
-
-        return result
+        return npcs
 
     @staticmethod
-    def _extract_steps(data: dict) -> list[int]:
+    def _extract_start_maps(data: dict) -> list[AtlasMap]:
 
-        steps = data.get("steps", [])
+        maps = []
 
-        result: list[int] = []
+        for game_map in data.get("start_maps", []):
 
-        for step in steps:
+            if isinstance(game_map, dict):
+                maps.append(MapNormalizer.normalize(game_map))
 
-            if isinstance(step, dict):
-                result.append(step["id"])
-            else:
-                result.append(step)
-
-        return result
-
-    @staticmethod
-    def _extract_rewards(data: dict) -> list[int]:
-
-        rewards = data.get("rewards", [])
-
-        result: list[int] = []
-
-        for reward in rewards:
-
-            if isinstance(reward, dict):
-                result.append(reward["id"])
-            else:
-                result.append(reward)
-
-        return result
+        return maps
